@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Personalized E-Learning Experience</title>
+<style>
+  /* Reset & basic */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #6A11CB, #2575FC);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h1, h2 {
+    text-align: center;
+    text-shadow: 0 0 6px rgba(0,0,0,0.3);
+  }
+  /* Container */
+  #app {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1rem 1.5rem 2rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    width: 100%;
+    max-height: 600px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Progress bar */
+  #progress-container {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    height: 10px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #FFD700;
+    border-radius: 8px;
+    transition: width 0.4s ease;
+  }
+  /* Module content */
+  #module-title {
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  #module-content {
+    font-size: 1rem;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    min-height: 100px;
+  }
+  /* Quiz section */
+  #quiz {
+    margin-bottom: 1rem;
+  }
+  .quiz-question {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .options {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+  }
+  .options li {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.3s ease;
+  }
+  .options li:hover,
+  .options li.selected {
+    background: #FFD700;
+    color: #222;
+  }
+  /* Buttons */
+  button {
+    background: #FFD700;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    color: #222;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.6);
+    transition: background 0.3s ease;
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto 1rem auto;
+    display: block;
+  }
+  button:disabled {
+    background: rgba(255, 215, 0, 0.5);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  /* Feedback */
+  #feedback {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    min-height: 32px;
+  }
+  /* Recommendation & personalization */
+  #recommendation {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 0.75rem;
+    font-style: italic;
+    margin-top: 1rem;
+    text-align: center;
+    color: #fff;
+  }
+  /* Scrollbar for #app only for desktop */
+  @media(min-width: 600px) {
+    #app::-webkit-scrollbar {
+      width: 8px;
+    }
+    #app::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #app::-webkit-scrollbar-thumb {
+      background: #FFD700;
+      border-radius: 4px;
+    }
+  }
+  /* Responsive text */
+  @media (max-width: 350px) {
+    #module-title {
+      font-size: 1.1rem;
+    }
+    #module-content {
+      font-size: 0.9rem;
+    }
+    .quiz-question {
+      font-size: 0.95rem;
+    }
+    button {
+      font-size: 0.9rem;
+      max-width: 100%;
+      padding: 0.6rem 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <h1>Personalized E-Learning</h1>
+  <div id="app" role="main" aria-live="polite">
+    <div id="progress-container" aria-label="Progress bar">
+      <div id="progress-bar"></div>
+    </div>
+
+    <div id="module-section" aria-label="Learning module">
+      <div id="module-title"></div>
+      <div id="module-content"></div>
+    </div>
+
+    <div id="quiz" aria-label="Quiz section" hidden>
+      <div class="quiz-question" id="quiz-question"></div>
+      <ul class="options" id="quiz-options"></ul>
+      <button id="submit-answer" disabled>Submit Answer</button>
+      <div id="feedback" aria-live="assertive"></div>
+    </div>
+
+    <button id="next-module" hidden>Next Module</button>
+
+    <div id="recommendation" aria-live="polite"></div>
+  </div>
+
+<script>
+  (function() {
+    const modules = [
+      {
+        id: 1,
+        title: 'Introduction to E-Learning',
+        content: 'E-learning is a method of delivering education through electronic resources, typically via the internet. It offers flexibility and accessibility to learners worldwide.',
+        quiz: {
+          question: "What does e-learning primarily use?",
+          options: ["Printed books", "Electronic resources", "Classroom lectures", "Postal mail"],
+          answerIndex: 1
+        }
+      },
+      {
+        id: 2,
+        title: 'Benefits of Personalization',
+        content: 'Personalized learning adapts to each student’s strengths and weaknesses, making education more effective and engaging. It helps learners achieve better outcomes at their own pace.',
+        quiz: {
+          question: "What is a main goal of personalized learning?",
+          options: ["One-size-fits-all teaching", "Adapting to individual strengths and weaknesses", "Shortening course length", "Eliminating assessments"],
+          answerIndex: 1
+        }
+      },
+      {
+        id: 3,
+        title: 'Student Engagement',
+        content: 'Engagement is key to learning success. It involves emotional, behavioral, and cognitive involvement in learning tasks. High engagement increases motivation and retention.',
+        quiz: {
+          question: "Which is NOT a component of engagement?",
+          options: ["Emotional involvement", "Behavioral involvement", "Cognitive involvement", "Physical fatigue"],
+          answerIndex: 3
+        }
+      },
+      {
+        id: 4,
+        title: 'Using Analytics for Improvement',
+        content: 'Analytics track performance and engagement data to identify areas needing attention. Teachers and systems can adjust content difficulty, pacing, and resources accordingly.',
+        quiz: {
+          question: "What can analytics help with in learning?",
+          options: ["Identifying weak areas", "Sending emails", "Social networking", "Selling courses"],
+          answerIndex: 0
+        }
+      }
+    ];
+
+    // Store analytics per module: engagement time (seconds), quiz answered, quiz correct
+    const analytics = {};
+
+    // Current module index
+    let currentIndex = 0;
+
+    // Track times for engagement
+    let moduleStartTime = null;
+
+    // DOM elements
+    const moduleTitleEl = document.getElementById('module-title');
+    const moduleContentEl = document.getElementById('module-content');
+    const quizSection = document.getElementById('quiz');
+    const quizQuestionEl = document.getElementById('quiz-question');
+    const quizOptionsEl = document.getElementById('quiz-options');
+    const submitBtn = document.getElementById('submit-answer');
+    const feedbackEl = document.getElementById('feedback');
+    const nextModuleBtn = document.getElementById('next-module');
+    const progressBar = document.getElementById('progress-bar');
+    const recommendationEl = document.getElementById('recommendation');
+
+    // Current quiz selected option index
+    let selectedOptionIndex = null;
+
+    // Update progress bar
+    function updateProgress() {
+      const progressPercent = ((currentIndex) / modules.length) * 100;
+      progressBar.style.width = progressPercent + '%';
+    }
+
+    // Record engagement time for module
+    function recordEngagementTime() {
+      if (moduleStartTime !== null) {
+        const duration = (Date.now() - moduleStartTime) / 1000; // seconds
+        let data = analytics[modules[currentIndex].id] || {engagementTime: 0, quizAnswered: false, quizCorrect: false};
+        data.engagementTime += duration;
+        analytics[modules[currentIndex].id] = data;
+        moduleStartTime = null;
+      }
+    }
+
+    // Load module content and quiz
+    function loadModule(index) {
+      currentIndex = index;
+      updateProgress();
+      recommendationEl.textContent = '';
+      feedbackEl.textContent = '';
+      nextModuleBtn.hidden = true;
+      submitBtn.disabled = true;
+      selectedOptionIndex = null;
+      quizOptionsEl.innerHTML = '';
+
+      // Record engagement time from previous module
+      if (moduleStartTime !== null) {
+        recordEngagementTime();
+      }
+
+      const mod = modules[index];
+      moduleTitleEl.textContent = mod.title;
+      moduleContentEl.textContent = mod.content;
+
+      // Show quiz
+      if (mod.quiz) {
+        quizSection.hidden = false;
+
+        quizQuestionEl.textContent = mod.quiz.question;
+        mod.quiz.options.forEach((option, i) => {
+          const li = document.createElement('li');
+          li.textContent = option;
+          li.setAttribute('tabindex', '0');
+          li.addEventListener('click', () => {
+            selectOption(i);
+          });
+          li.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              selectOption(i);
+            }
+          });
+          quizOptionsEl.appendChild(li);
+        });
+      } else {
+        quizSection.hidden = true;
+      }
+
+      // Start timing engagement
+      moduleStartTime = Date.now();
+    }
+
+    // Option select handler
+    function selectOption(index) {
+      selectedOptionIndex = index;
+      Array.from(quizOptionsEl.children).forEach((li, i) => {
+        li.classList.toggle('selected', i === index);
+      });
+      submitBtn.disabled = false;
+      feedbackEl.textContent = '';
+    }
+
+    // Submit answer and provide feedback
+    function submitAnswer() {
+      if (selectedOptionIndex === null) return;
+
+      const mod = modules[currentIndex];
+      const correctIndex = mod.quiz.answerIndex;
+      const data = analytics[mod.id] || {engagementTime: 0, quizAnswered: false, quizCorrect: false};
+      data.quizAnswered = true;
+      const isCorrect = selectedOptionIndex === correctIndex;
+      data.quizCorrect = isCorrect;
+      analytics[mod.id] = data;
+
+      feedbackEl.textContent = isCorrect ? "Correct! Great job 🎉" : `Incorrect. The correct answer is "${mod.quiz.options[correctIndex]}".`;
+      submitBtn.disabled = true;
+
+      // Stop timing engagement for current module after quiz completion
+      recordEngagementTime();
+
+      nextModuleBtn.hidden = false;
+      quizSection.querySelectorAll('li').forEach(li => li.style.pointerEvents = 'none');
+
+      // Show personalized recommendation based on performance
+      showRecommendation();
+    }
+
+    // Show recommendation based on analytics
+    function showRecommendation() {
+      // Identify weaker modules (incorrect or low engagement)
+      const weakModules = modules.filter(mod => {
+        const data = analytics[mod.id];
+        return !data || !data.quizCorrect || (data.engagementTime < 10);
+      });
+
+      if (weakModules.length > 0) {
+        const firstWeak = weakModules[0];
+        recommendationEl.textContent = `Recommendation: Review "${firstWeak.title}" again to strengthen your understanding.`;
+      } else {
+        recommendationEl.textContent = "Excellent progress! You have mastered all modules so far.";
+      }
+    }
+
+    // Move to the next module based on personalization
+    function nextModule() {
+      if (currentIndex < modules.length - 1) {
+        // Personalize next index: prioritize weak modules first
+        let weakModulesIndexes = [];
+        modules.forEach((mod, idx) => {
+          const data = analytics[mod.id];
+          if (!data || !data.quizCorrect || data.engagementTime < 10) {
+            if (idx > currentIndex) {
+              weakModulesIndexes.push(idx);
+            }
+          }
+        });
+
+        if (weakModulesIndexes.length > 0) {
+          // Jump to next weak module after current index, else next in order
+          loadModule(weakModulesIndexes[0]);
+        } else {
+          loadModule(currentIndex + 1);
+        }
+
+      } else {
+        // End of modules
+        moduleTitleEl.textContent = "Congratulations!";
+        moduleContentEl.textContent = "You have completed all modules.";
+        quizSection.hidden = true;
+        nextModuleBtn.hidden = true;
+        progressBar.style.width = "100%";
+        recommendationEl.textContent = "You can review any modules by using the navigation above.";
+      }
+    }
+
+    // Initialization
+    function init() {
+      loadModule(0);
+
+      submitBtn.addEventListener('click', submitAnswer);
+      nextModuleBtn.addEventListener('click', nextModule);
+
+      // Accessibility: enable keyboard navigation for quiz options and buttons
+    }
+
+    init();
+
+    // Save engagement data and state to localStorage for persistence (optional enhancement)
+    window.addEventListener('beforeunload', () => {
+      recordEngagementTime();
+      localStorage.setItem('elearningAnalytics', JSON.stringify(analytics));
+      localStorage.setItem('elearningCurrentIndex', currentIndex);
+    });
+
+    // Load saved state from localStorage
+    window.addEventListener('load', () => {
+      const savedAnalytics = localStorage.getItem('elearningAnalytics');
+      const savedIndex = localStorage.getItem('elearningCurrentIndex');
+
+      if (savedAnalytics) {
+        try {
+          Object.assign(analytics, JSON.parse(savedAnalytics));
+        } catch {}
+      }
+
+      if (savedIndex !== null) {
+        const idx = parseInt(savedIndex, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < modules.length) {
+          loadModule(idx);
+        }
+      }
+    });
+
+  })();
+</script>
+</body>
+</html>
+</content>
+</create_file>
